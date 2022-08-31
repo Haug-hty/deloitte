@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+</head>
+<style>
+  body {
+    margin: 0;
+    /* width: 100vw; */
+    height: 100vh;
+  }
+
+  #btn {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    z-index: 1000;
+  }
+
+  #btn-1 {
+    position: absolute;
+    top: 100px;
+    left: 200px;
+    z-index: 1000;
+  }
+
+  #btn-2 {
+    position: absolute;
+    top: 150px;
+    left: 200px;
+    z-index: 1000;
+  }
+
+  #btn-3 {
+    position: absolute;
+    top: 200px;
+    left: 200px;
+    z-index: 1000;
+  }
+</style>
+
+<body>
+  <!-- <div> -->
+  <canvas id="myCanvas" style="background-color: #eee;"></canvas>
+  <button id="btn-1" onclick="updrawLine()">添加辅助线</button>
+  <button id="btn-2" onclick="dropLine()">移动辅助线</button>
+  <button id="btn-3" onclick="deleteLine()">删除辅助线</button>
+
+  <!-- </div> -->
+
+  <script>
+    /** 
+     * @description  画布环境
+     * @author hu_ty
+     * @since 
+     * @param {*} 
+     * 
+     */
+    var c = document.getElementById("myCanvas");
+    document.getElementById("myCanvas").setAttribute("width", window.innerWidth)
+    document.getElementById("myCanvas").setAttribute("height", window.innerHeight)
+
+    var ctx = c.getContext("2d");
+
+    /** 
+     * @description  原始数据
+     * @author hu_ty
+     * @since 
+     * @param {*} 
+     * 
+     */
+    var flag = false,
+      dropFlag = false,
+      delFlag = false
+
+    var blobList = []
+    /** 
+     * @description  初始化数据线条
+     * @author hu_ty
+     * @since 
+     * @param {*} 
+     * 
+     */
+    function drawLine(blobList) {
+      blobList.length > 0 && blobList.forEach(blob => {
+        DrawBlob(blob)
+      });
+    }
+
+    /** 
+     * @description  绘图方法
+     * @author hu_ty
+     * @since 
+     * @param {*} 
+     * 
+     */
+    function DrawBlob(blob) {
+      ctx.beginPath();
+      ctx.moveTo(blob.startX, blob.startY);
+      ctx.lineTo(blob.endX, blob.endY);
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    /** 
+     * @description  新增线条
+     * @author hu_ty
+     * @since 
+     * @param {*} 
+     * 
+     */
+    function updrawLine() {
+      flag = true
+      document.onmousedown = function (ev) {
+        if (flag) {
+          var ev = ev || window.event;
+
+          var start = ev
+
+          ctx.beginPath();
+
+          ctx.moveTo(ev.clientX - c.offsetLeft, ev.clientY - c.offsetTop);
+
+          document.onmousemove = function (ev) {
+            var ev = ev || window.event;
+          };
+
+          document.onmouseup = function () {
+            var ev = ev || window.event;
+
+            ctx.lineTo(ev.clientX - c.offsetLeft, ev.clientY - c.offsetTop);
+
+            ctx.stroke();
+
+            document.onmousemove = null;
+
+            document.onmouseup = null;
+            flag = false
+            console.log('end', ev.clientX, ev.clientY, c);
+
+            var newline = {
+              startX: start.clientX - c.offsetLeft,
+              startY: start.clientY - c.offsetTop,
+              endX: ev.clientX - c.offsetLeft,
+              endY: ev.clientY - c.offsetTop,
+              id: parseInt(`${start.clientX - c.offsetLeft}` + `${ev.clientY - c.offsetTop}`)
+            }
+            blobList.push(newline)
+          };
+
+        }
+
+      };
+
+    }
+
+    //鼠标按下，将鼠标按下坐标保存在x,y中         
+    c.onmousedown = function (e) {
+      if (!flag) {
+        console.log(blobList);
+        //记录鼠标所在位置的坐标
+        x = e.clientX - c.getBoundingClientRect().left;
+        y = e.clientY - c.getBoundingClientRect().top;
+        //记录所在检测区域内坐标
+        blobList.length > 0 && blobList.forEach(blob => {
+          drag(blob, x, y);
+        });
+      }
+
+
+    };
+
+    /** 
+     * @description  移动辅助线
+     * @author hu_ty
+     * @since 
+     * @param {*} 
+     * 
+     */
+    function dropLine() {
+      dropFlag = true
+    }
+
+    /** 
+     * @description  删除辅助线
+     * @author hu_ty
+     * @since 
+     * @param {*} 
+     * 
+     */
+    function deleteLine() {
+      delFlag = true
+    }
+
+
+    //获取检测区域
+    function getBounds(blob) {
+      blob.width = blob.endX - blob.startX
+      blob.height = blob.endY - blob.startY
+
+      return {
+        x: blob.startX,
+        y: blob.startY,
+        width: Math.abs(blob.endX - blob.startX),
+        height: Math.abs(blob.endY - blob.startY),
+        id: blob.id,
+      };
+    }
+    //判断鼠标是否点击在指定检测区域
+    function containsPoint(rect, x, y) {
+      return !(x < rect.x - 25 || x > rect.x + 25 ||
+        y < rect.y - 25 || y > rect.y + 25);
+    }
+
+    //拖拽函数 
+    function drag(blob, x, y) {
+      // 判断鼠标是否在检测区域
+      if (containsPoint(getBounds(blob), x, y)) {
+        console.log(getBounds(blob), '进入区域', blob);
+        // 获取点击的对象
+        if (getBounds(blob).id = blob.id) {
+
+
+          if (dropFlag) {
+            const i = blobList.findIndex(i => {
+              return i.id == blob.id
+            })
+            if (i != -1) {
+              blobList.splice(i, 1)
+            }
+            //注册鼠标移动事件 
+            c.onmousemove = function (e) {
+              var x = e.clientX - c.getBoundingClientRect().left;
+              var y = e.clientY - c.getBoundingClientRect().top;
+              //清除画布内容
+              ctx.clearRect(0, 0, this.width, this.height);
+
+              //重绘
+              drawLine(blobList)
+              DrawBlob(blob);
+              //更新块所在的位置
+              blob.startX = x;
+              blob.startY = y;
+              blob.endX = blob.startX + blob.width
+              blob.endY = blob.startY + blob.height
+
+
+            };
+            //注册鼠标松开事件 
+            c.onmouseup = function (e) {
+              blobList.push(blob)
+              dropFlag = false
+              this.onmousemove = null;
+              this.onmouseup = null;
+            };
+          }
+          if (delFlag) {
+            const i = blobList.findIndex(i => {
+              return i.id == blob.id
+            })
+            if (i != -1) {
+              blobList.splice(i, 1)
+            }
+            //清除画布内容
+            ctx.clearRect(0, 0, c.width, c.height);
+
+            //重绘
+            drawLine(blobList)
+
+            delFlag = false
+          }
+
+
+        }
+
+      };
+    }
+
+    drawLine(blobList)
+  </script>
+</body>
+
+</html>
