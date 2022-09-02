@@ -1,0 +1,10 @@
+.container {
+    margin-left: 35%;
+    overflow: hidden;
+    width: 100vw;
+
+}
+
+::deep .react-pdf__Page__canvas {
+    margin: 0 auto;
+}

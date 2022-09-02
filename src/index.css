@@ -4,4 +4,17 @@
 
 .main-container {
     background-color: #eee;
+    overflow: hidden;
+}
+
+ .line-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 100;
+}
+
+.main-container .pdf-container {
+    margin: 0 auto;
+
 }

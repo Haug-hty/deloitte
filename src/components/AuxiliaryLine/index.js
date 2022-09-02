@@ -5,7 +5,7 @@ import React from "react";
 import './index.css'
 
 
-
+var count = 0
 export default class AuxLine extends React.Component {
     constructor(props) {
         super(props);
@@ -16,7 +16,8 @@ export default class AuxLine extends React.Component {
             start: null,
             end: null,
             blobList: [],
-            blob: {}
+            blob: {},
+            height: null,
         }
         this.ctx = null
         this.canvasNode = null
@@ -29,7 +30,7 @@ export default class AuxLine extends React.Component {
      * @param {*} 
      * 
      */
-    drawLine(blobList = this.state.blobList) {
+    drawLine(blobList) {
         blobList.length > 0 && blobList.forEach(blob => {
             this.drawBlob(blob)
         });
@@ -54,14 +55,24 @@ export default class AuxLine extends React.Component {
     }
 
     componentDidMount() {
-        // this为当前组件的实例
-        // console.log(this.canvasNode);
-        this.canvasNode.setAttribute("width", window.innerWidth)
-        this.canvasNode.setAttribute("height", window.innerHeight)
+        var { blobList } = this.state
+        // console.log(window.innerWidth);
+        this.canvasNode.setAttribute("width", this.canvasNode.parentElement.parentElement.getBoundingClientRect().width-100)
+        this.canvasNode.setAttribute("height", 1100)
         this.ctx = this.canvasNode.getContext("2d");
-
+        this.drawLine(blobList)
 
     }
+
+    // componentDidUpdate() {
+    //     var {status} = this.props
+    //     console.log(status);
+    //     if(status){
+    //         this.canvasNode.setAttribute("height", this.canvasNode.parentElement.parentElement.getBoundingClientRect().height)
+    //         console.log(this.canvasNode.parentElement.parentElement);
+    //         debugger
+    //     }
+    // }
     /** 
      * @description  新增线条
      * @author hu_ty
@@ -70,10 +81,17 @@ export default class AuxLine extends React.Component {
      * 
      */
     updrawLine() {
-        console.log(this.canvasNode, this.state);
         this.setState({
             flag: true
         })
+        if(!count){
+            this.setState({
+                height:this.canvasNode.parentElement.parentElement.getBoundingClientRect().height
+            })
+            count++
+        }
+        // console.log(this.canvasNode,count);
+        // debugger
     }
 
 
@@ -101,12 +119,19 @@ export default class AuxLine extends React.Component {
      */
     deleteLine() {
         this.setState({
-            delFlag:true
+            delFlag: true
         })
     }
 
-
+    /** 
+    * @description  鼠标按下事件
+    * @author hu_ty
+    * @since 
+    * @param {*} 
+    * 
+    */
     handleMouseDown = (ev) => {
+        // console.log(ev);
         let {
             flag,
             blobList
@@ -118,12 +143,13 @@ export default class AuxLine extends React.Component {
             let startPoint = ev || window.event
             this.ctx.beginPath();
 
-            this.ctx.moveTo(startPoint.clientX - this.canvasNode.offsetLeft, startPoint.clientY - this.canvasNode.offsetTop);
-
+            this.ctx.moveTo(startPoint.clientX - this.canvasNode.offsetLeft, startPoint.pageY - this.canvasNode.offsetTop);
+            // console.log('start',startPoint,startPoint.clientX - this.canvasNode.offsetLeft, startPoint.pageY - this.canvasNode.offsetTop);
         } else {
             //记录鼠标所在位置的坐标
             let x = ev.clientX - this.canvasNode.getBoundingClientRect().left;
             let y = ev.clientY - this.canvasNode.getBoundingClientRect().top;
+            // console.log(x,y,'mouse',this.canvasNode.getBoundingClientRect().top,ev.clientY);
             //记录所在检测区域内坐标
             blobList.length > 0 && blobList.forEach(blob => {
                 this.drag(blob, x, y);
@@ -131,6 +157,13 @@ export default class AuxLine extends React.Component {
         }
     }
 
+    /** 
+    * @description  鼠标抬起事件
+    * @author hu_ty
+    * @since 
+    * @param {*} 
+    * 
+    */
     handleMouseUp(ev) {
 
         let {
@@ -141,18 +174,19 @@ export default class AuxLine extends React.Component {
         if (flag) {
             let end = ev || window.event;
 
-            this.ctx.lineTo(end.clientX - this.canvasNode.offsetLeft, end.clientY - this.canvasNode.offsetTop);
+            this.ctx.lineTo(end.clientX - this.canvasNode.offsetLeft, end.pageY - this.canvasNode.offsetTop);
+            // console.log('end',end.clientX - this.canvasNode.offsetLeft, end.pageY - this.canvasNode.offsetTop);
 
             this.ctx.stroke();
 
             let a = start.clientX - this.canvasNode.offsetLeft
-            let b = ev.clientY - this.canvasNode.offsetTop
+            let b = ev.pageY - this.canvasNode.offsetTop
 
             var newline = {
                 startX: start.clientX - this.canvasNode.offsetLeft,
-                startY: start.clientY - this.canvasNode.offsetTop,
+                startY: start.pageY - this.canvasNode.offsetTop,
                 endX: end.clientX - this.canvasNode.offsetLeft,
-                endY: end.clientY - this.canvasNode.offsetTop,
+                endY: end.pageY - this.canvasNode.offsetTop,
                 id: parseInt(a.toString() + b.toString())
             }
             blobList.push(newline)
@@ -163,14 +197,27 @@ export default class AuxLine extends React.Component {
 
     }
 
-    //判断鼠标是否点击在指定检测区域
+    /** 
+    * @description  判断鼠标是否点击在指定检测区域
+    * @author hu_ty
+    * @since 
+    * @param {*} 
+    * 
+    */
     containsPoint(rect, x, y) {
         return !(x < rect.x - 25 || x > rect.x + 25 ||
             y < rect.y - 25 || y > rect.y + 25);
     }
 
-    //获取检测区域
+    /** 
+    * @description  获取检测区域
+    * @author hu_ty
+    * @since 
+    * @param {*} 
+    * 
+    */
     getBounds(blob) {
+        // console.log(blob);
         blob.width = blob.endX - blob.startX
         blob.height = blob.endY - blob.startY
 
@@ -183,7 +230,13 @@ export default class AuxLine extends React.Component {
         };
     }
 
-    //拖拽函数 
+    /** 
+    * @description  移动辅助线函数
+    * @author hu_ty
+    * @since 
+    * @param {*} 
+    * 
+    */
     drag(blob, x, y) {
         var {
             blobList,
@@ -192,12 +245,13 @@ export default class AuxLine extends React.Component {
         } = this.state
         // 判断鼠标是否在检测区域
         if (this.containsPoint(this.getBounds(blob), x, y)) {
-            console.log(this.getBounds(blob), '进入区域', blob);
+            // console.log(this.getBounds(blob), '进入区域', blob);
             // 获取点击的对象
             if (this.getBounds(blob).id === blob.id) {
 
 
                 if (dropFlag) {
+                    // console.log(blobList,'blobList');
                     this.setState({
                         blob: blob
                     })
@@ -208,7 +262,8 @@ export default class AuxLine extends React.Component {
                         blobList.splice(i, 1)
                     }
                     let that = this
-                    this.canvasNode.onmousemove = function(e){
+                    this.canvasNode.onmousemove = function (e) {
+                        // console.log(e,'drop');
                         var x = e.clientX - that.canvasNode.getBoundingClientRect().left;
                         var y = e.clientY - that.canvasNode.getBoundingClientRect().top;
                         //清除画布内容
@@ -231,22 +286,22 @@ export default class AuxLine extends React.Component {
                         })
                         that.canvasNode.onmousemove = null;
                         that.canvasNode.onmouseup = null;
-                      };
+                    };
                 }
                 if (delFlag) {
-                  const i = blobList.findIndex(i => {
-                    return i.id === blob.id
-                  })
-                  if (i !== -1) {
-                    blobList.splice(i, 1)
-                  }
-                  //清除画布内容
-                  this.ctx.clearRect(0, 0, this.canvasNode.getBoundingClientRect().width, this.canvasNode.getBoundingClientRect().height);
+                    const i = blobList.findIndex(i => {
+                        return i.id === blob.id
+                    })
+                    if (i !== -1) {
+                        blobList.splice(i, 1)
+                    }
+                    //清除画布内容
+                    this.ctx.clearRect(0, 0, this.canvasNode.getBoundingClientRect().width, this.canvasNode.getBoundingClientRect().height);
 
-                  //重绘
-                  this.drawLine(blobList)
+                    //重绘
+                    this.drawLine(blobList)
 
-                  this.setState({
+                    this.setState({
                         delFlag: false
                     })
                 }
@@ -257,37 +312,58 @@ export default class AuxLine extends React.Component {
         };
     }
 
+    /** 
+    * @description  保存辅助线信息数组
+    * @author hu_ty
+    * @since 
+    * @param {*} 
+    * 
+    */
+    saveLine(){
+        var { blobList } = this.state
+
+        console.log("辅助线信息数组：",blobList);
+    }
+
 
 
 
     render() {
-        return ( <div className = "body" >
-            <canvas id = "myCanvas"
-            ref = {
-                el => this.canvasNode = el
-            }
-            onMouseDown = {
-                this.handleMouseDown.bind(this)
-            }
-            onMouseUp = {
-                this.handleMouseUp.bind(this)
-            }
+        var {height} = this.state
+        return (<div className="body" >
+            <canvas id="myCanvas"
+                ref={
+                    el => this.canvasNode = el
+                }
+                onMouseDown={
+                    this.handleMouseDown.bind(this)
+                }
+                onMouseUp={
+                    this.handleMouseUp.bind(this)
+                }
+                height={height}
             >
-            </canvas>  <button id = "btn-1"
-            onClick = {
-                () => this.updrawLine()
-            } >
-            添加辅助线 </button>  <button id = "btn-2"
-            onClick = {
-                () => this.dropLine()
-            } > 移动辅助线 </button> <button id = "btn-3"
-            onClick = {
-                ()=>this.deleteLine()
-            } > 删除辅助线 </button>
+            </canvas>  <button id="btn-1"
+                onClick={
+                    () => this.updrawLine()
+                } >
+                添加辅助线 </button>  <button id="btn-2"
+                    onClick={
+                        () => this.dropLine()
+                    } > 移动辅助线 </button> <button id="btn-3"
+                        onClick={
+                            () => this.deleteLine()
+                        } > 删除辅助线 </button>
+                        <button id="btn-4"
+                        onClick={
+                            () => this.saveLine()
+                        } > 获取辅助线信息 </button>
 
 
-            </div>
+        </div>
         )
     }
 
 }
+
+
